@@ -1,0 +1,17 @@
+idf_component_register(
+    SRCS 
+        "mesh_manager.c"
+        "mesh_systems.c"
+        "mesh_protocol.c"
+        "mesh_transport.c"
+    INCLUDE_DIRS
+        "inc"
+    REQUIRES
+        esp_wifi
+        nvs_flash
+        esp_netif
+        lwip
+        mesh_lite
+    PRIV_REQUIRES
+        json
+)
