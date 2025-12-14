@@ -10,8 +10,7 @@ idf_component_register(
         esp_wifi
         nvs_flash
         esp_netif
+        esp_mesh
         lwip
-        mesh_lite
-    PRIV_REQUIRES
         json
 )
