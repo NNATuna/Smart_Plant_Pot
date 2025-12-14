@@ -8,9 +8,9 @@ idf_component_register(
         "inc"
     REQUIRES
         esp_wifi
+        esp_event
         nvs_flash
         esp_netif
-        esp_mesh
         lwip
         json
 )
