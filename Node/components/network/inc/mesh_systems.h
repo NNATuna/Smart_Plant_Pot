@@ -1,15 +1,23 @@
-#pragma once
-#include "esp_mesh_lite.h"
-#include "freertos/event_groups.h"
+#ifndef MESH_SYSTEMS_H
+#define MESH_SYSTEMS_H
 
-#define MESH_EVT_NODE_JOINED BIT0
-#define MESH_EVT_NODE_LEFT BIT1
-#define MESH_EVT_NODE_CHANGED BIT2
+#include <stdbool.h>
+#include <stdint.h>
+#include "esp_event.h"
 
-extern EventGroupHandle_t mesh_event_group;
-
-extern bool mesh_connected;
-extern uint8_t parent_mac[6];
-extern int mesh_layer;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void mesh_event_handler(void *arg, esp_event_base_t base, int32_t id, void *data);
+bool mesh_systems_is_root(void);
+int mesh_systems_get_layer(void);
+bool mesh_systems_is_connected(void);
+void mesh_systems_get_parent_mac(uint8_t mac[6]);
+void mesh_systems_get_root_mac(uint8_t mac[6]);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // MESH_SYSTEMS_H

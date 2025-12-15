@@ -1,105 +1,93 @@
 #include "mesh_manager.h"
 #include "mesh_systems.h"
-#include "esp_err.h"
-#include "esp_mac.h"
+
+#include <string.h>
+#include "esp_event.h"
 #include "esp_log.h"
+#include "esp_mesh.h"
+#include "esp_netif.h"
 #include "esp_wifi.h"
 #include "nvs_flash.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
+#include "sdkconfig.h"
 
-const char *TAG = "wifi_manager";
+#define MESH_TAG "mesh_manager"
 
-void wifi_init(void)
+static const uint8_t s_mesh_id[MESH_ID_LEN] = {0x32, 0x10, 0x45, 0x78, 0x9A, 0xBC};
+
+static esp_err_t mesh_manager_configure_mesh(void);
+
+esp_err_t mesh_manager_init(void)
 {
-    // NVS
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
-    {
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
+        err = nvs_flash_init();
     }
-    ESP_ERROR_CHECK(ret);
+    ESP_ERROR_CHECK(err);
 
-    // Network interfaces
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    // Wi-Fi init
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
-    // Để mesh tự set mode
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(TAG, "WiFi initialized for mesh");
+    ESP_LOGI(MESH_TAG, "Wi-Fi initialized for mesh");
+    return ESP_OK;
 }
-void mesh_init(void)
+
+static esp_err_t mesh_manager_configure_mesh(void)
 {
-    ESP_ERROR_CHECK(esp_mesh_init());
-
-    // Cấu hình basic
-    ESP_ERROR_CHECK(esp_mesh_set_max_layer(CONFIG_ESP_MESH_MAX_LAYER));
-    ESP_ERROR_CHECK(esp_mesh_set_vote_percentage(1));
-    ESP_ERROR_CHECK(esp_mesh_set_xon_qsize(64));
-
     mesh_cfg_t cfg = MESH_INIT_CONFIG_DEFAULT();
 
-    // ----- Mesh ID -----
-    memcpy(cfg.mesh_id, mesh_id, 6);
-
-    // ----- Channel -----
+    memcpy((uint8_t *)cfg.mesh_id, s_mesh_id, MESH_ID_LEN);
     cfg.channel = CONFIG_ESP_MESH_CHANNEL;
+    cfg.router.ssid_len = strlen(CONFIG_ESP_WIFI_SSID);
+    memcpy(cfg.router.ssid, CONFIG_ESP_WIFI_SSID, cfg.router.ssid_len);
+    memcpy(cfg.router.password, CONFIG_ESP_WIFI_PASSWORD, strlen(CONFIG_ESP_WIFI_PASSWORD));
 
-    // ----- Router (root AP) -----
-    cfg.router.ssid_len = strlen(CONFIG_ESP_MESH_ROUTER_SSID);
-    memcpy(cfg.router.ssid, CONFIG_ESP_MESH_ROUTER_SSID, cfg.router.ssid_len);
-    memcpy(cfg.router.password, CONFIG_ESP_MESH_ROUTER_PASS,
-           strlen(CONFIG_ESP_MESH_ROUTER_PASS));
+    cfg.mesh_ap.max_connection = CONFIG_ESP_MESH_MAX_LAYER; // allow same as layer limit
+    cfg.mesh_ap.authmode = WIFI_AUTH_WPA2_PSK;
+    if (strlen(CONFIG_ESP_MESH_PASSWORD) == 0) {
+        cfg.mesh_ap.authmode = WIFI_AUTH_OPEN;
+    } else {
+        memcpy(cfg.mesh_ap.password, CONFIG_ESP_MESH_PASSWORD, strlen(CONFIG_ESP_MESH_PASSWORD));
+    }
 
-    // ----- Mesh Type -----
-    ESP_ERROR_CHECK(esp_mesh_set_type(MESH_NODE));
-
-    // Đăng ký event handler
-    esp_event_handler_register(MESH_EVENT, ESP_EVENT_ANY_ID, mesh_event_handler, NULL);
-
+    ESP_ERROR_CHECK(esp_mesh_set_max_layer(CONFIG_ESP_MESH_MAX_LAYER));
+    ESP_ERROR_CHECK(esp_mesh_set_ap_authmode(cfg.mesh_ap.authmode));
+    ESP_ERROR_CHECK(esp_mesh_set_leave_indication(true));
+    ESP_ERROR_CHECK(esp_mesh_set_xon_qsize(128));
+    ESP_ERROR_CHECK(esp_mesh_allow_root_conflicts(true));
+    ESP_ERROR_CHECK(esp_mesh_set_self_organized(true, false));
     ESP_ERROR_CHECK(esp_mesh_set_config(&cfg));
-    ESP_ERROR_CHECK(esp_mesh_start());
 
-    ESP_LOGI(TAG, "Mesh node started");
+    return ESP_OK;
 }
-void mesh_init(void)
+
+esp_err_t mesh_manager_start(void)
 {
     ESP_ERROR_CHECK(esp_mesh_init());
+    ESP_ERROR_CHECK(mesh_manager_configure_mesh());
 
-    // Cấu hình basic
-    ESP_ERROR_CHECK(esp_mesh_set_max_layer(CONFIG_ESP_MESH_MAX_LAYER));
-    ESP_ERROR_CHECK(esp_mesh_set_vote_percentage(1));
-    ESP_ERROR_CHECK(esp_mesh_set_xon_qsize(64));
+    ESP_ERROR_CHECK(esp_event_handler_register(MESH_EVENT, ESP_EVENT_ANY_ID, mesh_event_handler, NULL));
 
-    mesh_cfg_t cfg = MESH_INIT_CONFIG_DEFAULT();
-
-    // ----- Mesh ID -----
-    memcpy(cfg.mesh_id, mesh_id, 6);
-
-    // ----- Channel -----
-    cfg.channel = CONFIG_ESP_MESH_CHANNEL;
-
-    // ----- Router (root AP) -----
-    cfg.router.ssid_len = strlen(CONFIG_ESP_MESH_SSID);
-    memcpy(cfg.router.ssid, CONFIG_ESP_MESH_SSID, cfg.router.ssid_len);
-    memcpy(cfg.router.password, CONFIG_ESP_MESH_PASSWORD,
-           strlen(CONFIG_ESP_MESH_PASSWORD));
-
-    // ----- Mesh Type -----
-    ESP_ERROR_CHECK(esp_mesh_set_type(MESH_NODE));
-
-    // Đăng ký event handler
-    esp_event_handler_register(MESH_EVENT, ESP_EVENT_ANY_ID, mesh_event_handler, NULL);
-
-    ESP_ERROR_CHECK(esp_mesh_set_config(&cfg));
     ESP_ERROR_CHECK(esp_mesh_start());
+    ESP_LOGI(MESH_TAG, "Mesh started");
+    return ESP_OK;
+}
 
-    ESP_LOGI(TAG, "Mesh node started");
+esp_err_t mesh_manager_stop(void)
+{
+    ESP_ERROR_CHECK(esp_mesh_stop());
+    ESP_ERROR_CHECK(esp_event_handler_unregister(MESH_EVENT, ESP_EVENT_ANY_ID, mesh_event_handler));
+    ESP_LOGI(MESH_TAG, "Mesh stopped");
+    return ESP_OK;
+}
+
+bool mesh_manager_is_root(void)
+{
+    return esp_mesh_is_root();
 }
