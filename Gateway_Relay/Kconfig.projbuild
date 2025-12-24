@@ -1,0 +1,54 @@
+menu "Gateway Relay Configuration"
+
+config CAN_UPLINK
+    bool "Enable uplink capabilities"
+    default y
+    help
+        When enabled, device can act as mesh root and perform cloud uplink.
+
+config RAW_QUEUE_LEN
+    int "Raw RX queue length"
+    default 64
+    range 8 256
+    help
+        Queue for raw mesh frames before decoding. Tune based on traffic burstiness.
+
+config DECODED_QUEUE_LEN
+    int "Decoded queue length"
+    default 64
+    range 8 256
+    help
+        Queue after decoding/validation before spooling.
+
+config STORAGE_QUEUE_LEN
+    int "Storage queue length"
+    default 64
+    range 8 256
+    help
+        Queue for records waiting to be appended to the durable spool.
+
+config SPOOL_PARTITION_LABEL
+    string "LittleFS partition label"
+    default "spool"
+    help
+        Partition label used for durable spool storage.
+
+config SPOOL_MAX_BYTES
+    int "Max spool size (bytes)"
+    default 2097152
+    help
+        Size threshold for spool rotation.
+
+config CLOUD_BATCH_MAX_RECORDS
+    int "Cloud batch max records"
+    default 32
+    help
+        Maximum records sent per HTTP request.
+
+config CLOUD_BATCH_TIME_SEC
+    int "Cloud batch time window (sec)"
+    default 15
+    help
+        Time window for batching outgoing records.
+
+endmenu
