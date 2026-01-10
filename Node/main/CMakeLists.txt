@@ -7,6 +7,7 @@ idf_component_register(
         esp_wifi
         nvs_flash
         json
+        tests
     REQUIRES
         driver
         sensors

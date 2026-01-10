@@ -24,8 +24,8 @@ void i2c_manager_init(i2c_port_t port, uint32_t timeout_ms)
     // I2C config (GPIO 21/22 nếu bạn dùng board DevKit)
     i2c_config_t conf = {
         .mode = I2C_MODE_MASTER,
-        .sda_io_num = GPIO_NUM_21,
-        .scl_io_num = GPIO_NUM_22,
+        .sda_io_num = GPIO_NUM_8,
+        .scl_io_num = GPIO_NUM_9,
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
         .master.clk_speed = 100000,

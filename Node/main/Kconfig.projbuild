@@ -1,88 +1,40 @@
-menu "Example Configuration"
+menu "Mesh Configuration"
 
     config ESP_MESH_MAX_LAYER
-        int "Maximal Mesh Layer"
+        int "Max Mesh Layer"
         range 1 10
         default 3
         help
-            Set the maximal number of layers for the mesh network.
-            
-    config ESP_MESH_CHANNEL
-        int "Mesh Channel"
-        range 1 13
-        default 1
-        help
-            Channel for the mesh network.
+            Maximum number of mesh layers.
 
-    config ESP_MESH_SSID
-        string "Mesh SSID"
-        default "meshssid"
+    config ESP_MESH_CHANNEL
+        int "Mesh Channel (FIXED)"
+        range 1 13
+        default 6
         help
-            SSID for the mesh network.
-    
-    config ESP_MESH_PASSWORD
-        string "Mesh Password" 
-        default "meshpassword"
-        help
-            Password for the mesh network.
+            Fixed channel for ESP-MESH.
+            All nodes MUST use the same channel.
 
     config ESP_WIFI_SSID
-        string "WiFi SSID"
+        string "Router SSID"
         default "CEEC_Tenda"
         help
-            SSID (network name) for the example to connect to.
+            Router SSID (used by ROOT only).
 
     config ESP_WIFI_PASSWORD
-        string "WiFi Password"
+        string "Router Password"
         default "1denmuoi1"
         help
-            WiFi password (WPA or WPA2) for the example to use.
-    config ESP_WIFI_AP_SSID
-        string "Wifi AP SSID"
-        default "myssid"
-        help
-            SSID for the softAP
-    config ESP_WIFI_AP_PASSWORD
-        string "Wifi AP Password"
-        default "mypassword"
-        help
-            Password for the softAP
-    config ESP_WIFI_AP_CHANNEL
-        int "Wifi AP Channel"
-        range  1 13
-        default 1
-        help 
-            channel for softAP
-    config ESP_WIFI_AP_MAX_CONNECT
-        int "Wifi AP Max Connect"
-        range 1 6
-        default 4 
-        help 
-            Max sta connect to softAP
-    config ESP_WIFI_CHANNEL
-        int "WiFi Channel"
-        range 1 13
-        default 1
-        help
-            WiFi channel (network channel) for the example to use.
-
-    config ESP_MAX_STA_CONN
-        int "Maximal STA connections"
-        default 4
-        help
-            Max number of the STA connects to AP.
+            Router password (used by ROOT only).
 
     config ESP_GTK_REKEYING_ENABLE
         bool "Enable GTK Rekeying"
         default y
-        help
-            Flag to enable GTK rekeying.
 
     config ESP_GTK_REKEY_INTERVAL
-        int "GTK rekey interval"
+        int "GTK Rekey Interval (s)"
         depends on ESP_GTK_REKEYING_ENABLE
         range 60 65535
         default 600
-        help
-            GTK rekeying interval in seconds.
+
 endmenu

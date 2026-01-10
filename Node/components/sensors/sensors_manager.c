@@ -1,7 +1,7 @@
 #include "sensors_manager.h"
 #include "bh1750.h"
 #include "aht20.h"
-#include "soil_sensor.h"
+//#include "soil_sensor.h"
 #include "esp_log.h"
 
 static const char *TAG = "SENSOR_MANAGER";

@@ -20,53 +20,70 @@ void soil_sensor_init(soil_sensor_config_t *cfg)
     if (ret != ESP_OK || cfg->adc_handle == NULL)
     {
         ESP_LOGE(TAG, "adc_oneshot_new_unit FAILED: %s", esp_err_to_name(ret));
-        return; // STOP HERE → prevent crash
+        return;
     }
-
-    ESP_LOGI(TAG, "ADC unit created: handle=%p", cfg->adc_handle);
 
     // -------------------------------
     // 2. Configure channel
     // -------------------------------
     adc_oneshot_chan_cfg_t chan_cfg = {
         .bitwidth = ADC_BITWIDTH_DEFAULT,
-        .atten = ADC_ATTEN_DB_11,
+        .atten = ADC_ATTEN_DB_12, 
     };
 
-    ret = adc_oneshot_config_channel(cfg->adc_handle, cfg->channel, &chan_cfg);
+    ret = adc_oneshot_config_channel(cfg->adc_handle,
+                                     cfg->channel,
+                                     &chan_cfg);
     if (ret != ESP_OK)
     {
-        ESP_LOGE(TAG, "adc_oneshot_config_channel FAILED: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "adc_oneshot_config_channel FAILED: %s",
+                 esp_err_to_name(ret));
         return;
     }
 
     // -------------------------------
-    // 3. Calibration (line fitting)
+    // 3. Calibration (PER TARGET)
     // -------------------------------
+
+#if CONFIG_IDF_TARGET_ESP32
     adc_cali_line_fitting_config_t cali_cfg = {
         .unit_id = cfg->unit_id,
-        .atten = ADC_ATTEN_DB_11,
+        .atten = ADC_ATTEN_DB_12,
         .bitwidth = ADC_BITWIDTH_DEFAULT,
     };
 
-    ret = adc_cali_create_scheme_line_fitting(&cali_cfg, &cfg->cali_handle);
+    ret = adc_cali_create_scheme_line_fitting(&cali_cfg,
+                                              &cfg->cali_handle);
+
+#elif CONFIG_IDF_TARGET_ESP32C3
+    adc_cali_curve_fitting_config_t cali_cfg = {
+        .unit_id = cfg->unit_id,
+        .chan = cfg->channel,
+        .atten = ADC_ATTEN_DB_12,
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
+    };
+
+    ret = adc_cali_create_scheme_curve_fitting(&cali_cfg,
+                                               &cfg->cali_handle);
+#else
+    ret = ESP_ERR_NOT_SUPPORTED;
+#endif
+
     if (ret == ESP_OK)
     {
         cfg->calibrated = true;
-        ESP_LOGI(TAG, "ADC calibration OK: cali_handle=%p", cfg->cali_handle);
+        ESP_LOGI(TAG, "ADC calibration OK");
     }
     else
     {
         cfg->calibrated = false;
-        ESP_LOGW(TAG, "ADC calibration FAILED (ignored): %s", esp_err_to_name(ret));
+        ESP_LOGW(TAG, "ADC calibration not available");
     }
-
-    ESP_LOGI(TAG, "Soil sensor initialized successfully");
 }
 
 uint32_t soil_sensor_read_raw(soil_sensor_config_t *cfg)
 {
-    if (!cfg->adc_handle) // Prevent crash
+    if (!cfg->adc_handle)
         return 0;
 
     int raw = 0;
